@@ -1,0 +1,5 @@
+essentia-tensorflow
+numpy
+streamlit
+mutagen
+rekordbox-pdb @ git+https://github.com/fragmede/rekordbox-pdb.git

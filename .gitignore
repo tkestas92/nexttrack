@@ -1,0 +1,15 @@
+node_modules
+.next
+.env*
+pipeline/.venv
+pipeline/models/
+*.pb
+*.mp3
+*.wav
+*.aiff
+*.flac
+*.m4a
+vectors.jsonl
+metadata.json
+deezer.json
+*.log
