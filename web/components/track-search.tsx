@@ -10,7 +10,67 @@ type Item = {
   haystack: string;
 };
 
-const LIMIT = 40;
+const LIMIT = 50;
+const TRY_COUNT = 12;
+const TRY_KEYS = ["8A", "1B", "5A", "10B", "3A", "7B", "12A", "4B", "9A", "2B", "6A", "11B"];
+
+function bpmBand(bpm: number | null): string {
+  if (bpm == null) return "unknown";
+  if (bpm < 100) return "slow";
+  if (bpm < 118) return "mid";
+  if (bpm < 128) return "house";
+  return "fast";
+}
+
+function pickTryThese(tracks: Track[], items: Item[]): Item[] {
+  const byIndex = new Map(items.map((item) => [item.index, item]));
+  const used = new Set<number>();
+  const usedGenre = new Set<string>();
+  const usedBand = new Set<string>();
+  const picked: Item[] = [];
+
+  function take(index: number) {
+    const item = byIndex.get(index);
+    const track = tracks[index];
+    if (!item || !track) return;
+    used.add(index);
+    const genre = track.genre.trim();
+    if (genre) usedGenre.add(genre);
+    usedBand.add(bpmBand(track.bpm));
+    picked.push(item);
+  }
+
+  for (const key of TRY_KEYS) {
+    if (picked.length === TRY_COUNT) break;
+    let best = -1;
+    let bestScore = -1;
+    for (let index = 0; index < tracks.length; index += 1) {
+      const track = tracks[index];
+      if (track.camelot !== key || used.has(index) || typeof track.deezer !== "number") continue;
+      const genre = track.genre.trim();
+      let score = 0;
+      if (genre && !usedGenre.has(genre)) score += 2;
+      if (!usedBand.has(bpmBand(track.bpm))) score += 1;
+      if (score > bestScore) {
+        best = index;
+        bestScore = score;
+      }
+    }
+    if (best >= 0) take(best);
+  }
+
+  if (picked.length < TRY_COUNT) {
+    const step = Math.max(1, Math.floor(tracks.length / TRY_COUNT));
+    for (let start = 0; picked.length < TRY_COUNT && start < tracks.length; start += 1) {
+      const index = (start * step) % tracks.length;
+      const track = tracks[index];
+      if (used.has(index) || typeof track.deezer !== "number" || !byIndex.has(index)) continue;
+      take(index);
+    }
+  }
+
+  return picked;
+}
 
 export function TrackSearch({
   tracks,
@@ -43,14 +103,20 @@ export function TrackSearch({
   const shown = editing ? draft : selectedLabel;
   const query = editing ? draft.trim().toLocaleLowerCase() : "";
 
-  const results = useMemo(() => {
-    const matches: Item[] = [];
-    for (const item of items) {
-      if (!query || item.haystack.includes(query)) matches.push(item);
-      if (matches.length === LIMIT) break;
+  const { results, matchCount, suggestions } = useMemo(() => {
+    if (!query) {
+      const suggested = pickTryThese(tracks, items);
+      return { results: suggested, matchCount: suggested.length, suggestions: true };
     }
-    return matches;
-  }, [items, query]);
+    const matches: Item[] = [];
+    let total = 0;
+    for (const item of items) {
+      if (!item.haystack.includes(query)) continue;
+      total += 1;
+      if (matches.length < LIMIT) matches.push(item);
+    }
+    return { results: matches, matchCount: total, suggestions: false };
+  }, [items, query, tracks]);
 
   if (query !== activeQuery) {
     setActiveQuery(query);
@@ -62,11 +128,17 @@ export function TrackSearch({
     if (!list || !open) return;
     const option = list.querySelector<HTMLElement>('[data-active="true"]');
     if (!option) return;
-    const top = option.offsetTop;
-    const bottom = top + option.offsetHeight;
-    if (top < list.scrollTop) list.scrollTop = top;
-    else if (bottom > list.scrollTop + list.clientHeight) {
-      list.scrollTop = bottom - list.clientHeight;
+    const listRect = list.getBoundingClientRect();
+    const optionRect = option.getBoundingClientRect();
+    const follower = option.nextElementSibling;
+    const followBottom =
+      follower instanceof HTMLElement && follower.getAttribute("role") !== "option"
+        ? follower.getBoundingClientRect().bottom
+        : optionRect.bottom;
+    if (optionRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - optionRect.top;
+    } else if (followBottom > listRect.bottom) {
+      list.scrollTop += followBottom - listRect.bottom;
     }
   }, [active, open, results]);
 
@@ -89,6 +161,7 @@ export function TrackSearch({
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setOpen(true);
+      if (results.length === 0) return;
       setActive((current) => Math.min(current + (open ? 1 : 0), results.length - 1));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -149,31 +222,41 @@ export function TrackSearch({
           id={listId}
           role="listbox"
           aria-label="Tracks"
-          className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-lg border border-line bg-panel py-1 shadow-2xl shadow-black/40"
+          className="absolute z-20 mt-2 max-h-[60vh] w-full overflow-y-auto rounded-lg border border-line bg-panel py-1 shadow-2xl shadow-black/40"
         >
           {results.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted">No tracks match that search.</li>
           ) : (
-            results.map((item, index) => {
-              const isActive = index === active;
-              return (
-                <li
-                  key={item.index}
-                  id={`${listId}-${item.index}`}
-                  role="option"
-                  aria-selected={item.index === selected}
-                  data-active={isActive ? "true" : "false"}
-                  onMouseEnter={() => setActive(index)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => choose(item)}
-                  className={`cursor-pointer px-4 py-2.5 text-sm ${
-                    isActive ? "bg-gold text-gold-ink" : "text-cream"
-                  }`}
-                >
-                  {item.label}
+            <>
+              {suggestions ? (
+                <li className="px-4 pt-2 pb-1 text-sm text-muted">Try these</li>
+              ) : null}
+              {results.map((item, index) => {
+                const isActive = index === active;
+                return (
+                  <li
+                    key={item.index}
+                    id={`${listId}-${item.index}`}
+                    role="option"
+                    aria-selected={item.index === selected}
+                    data-active={isActive ? "true" : "false"}
+                    onMouseEnter={() => setActive(index)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => choose(item)}
+                    className={`cursor-pointer px-4 py-2.5 text-sm break-words ${
+                      isActive ? "bg-gold text-gold-ink" : "text-cream"
+                    }`}
+                  >
+                    {item.label}
+                  </li>
+                );
+              })}
+              {matchCount > results.length ? (
+                <li className="px-4 py-2.5 text-sm text-muted">
+                  Showing {results.length} of {matchCount} matches - keep typing to narrow down
                 </li>
-              );
-            })
+              ) : null}
+            </>
           )}
         </ul>
       ) : null}
