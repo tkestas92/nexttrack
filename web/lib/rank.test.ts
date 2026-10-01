@@ -8,6 +8,7 @@ function track(partial: Partial<Track> & Pick<Track, "artist" | "title">): Track
     bpm: 120,
     camelot: "8A",
     deezer: null,
+    radar: null,
     ...partial,
   };
 }

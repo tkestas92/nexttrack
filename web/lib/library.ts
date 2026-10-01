@@ -10,7 +10,15 @@ function isTrack(value: unknown): value is Track {
     typeof track.genre === "string" &&
     (typeof track.bpm === "number" || track.bpm === null) &&
     (typeof track.camelot === "string" || track.camelot === null) &&
-    (typeof track.deezer === "number" || track.deezer === null)
+    (typeof track.deezer === "number" || track.deezer === null) &&
+    isRadar(track.radar)
+  );
+}
+
+function isRadar(value: unknown): value is number[] | null {
+  return (
+    value === null ||
+    (Array.isArray(value) && value.every((item) => typeof item === "number" && Number.isFinite(item)))
   );
 }
 

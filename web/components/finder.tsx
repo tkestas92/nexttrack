@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CamelotBadge, CamelotWheel } from "@/components/camelot-wheel";
 import { Controls } from "@/components/controls";
 import { PreviewControls } from "@/components/preview-controls";
+import { RadarCompare, TrackRadar } from "@/components/radar-chart";
 import { PreviewProvider } from "@/components/preview-provider";
 import { TrackSearch } from "@/components/track-search";
 import { formatBpm, trackLabel } from "@/lib/format";
@@ -155,6 +156,7 @@ export function Finder() {
                   <div className="mt-3">
                     <TrackFacts track={selected} />
                   </div>
+                  <TrackRadar radar={selected.radar} />
                   {deezerId(selected) != null ? (
                     <div className="mt-5">
                       <PreviewControls
@@ -203,6 +205,7 @@ export function Finder() {
                             <div className="mt-4">
                               <SimilarityBar score={hit.score} />
                             </div>
+                            <RadarCompare query={selected.radar} suggestion={track.radar} />
                             {preview != null ? (
                               <div className="mt-4">
                                 <PreviewControls id={preview} label={label} />

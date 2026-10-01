@@ -5,6 +5,7 @@ export type Track = {
   bpm: number | null;
   camelot: string | null;
   deezer: number | null;
+  radar: number[] | null;
 };
 
 export type Library = {

@@ -26,6 +26,12 @@ export function HowItWorks() {
         No audio files are hosted. The site ships embeddings and metadata only.
         A preview plays from Deezer when you press play, and that address is not stored.
       </p>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted">
+        <span className="text-cream">About the radar. </span>
+        Relaxed, party, aggressive, happy, sad, and vocal are Essentia audio-model
+        estimates. Each number is that track’s percentile in this library, from 0 to
+        100, not a probability.
+      </p>
     </section>
   );
 }
