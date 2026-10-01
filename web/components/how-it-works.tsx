@@ -1,9 +1,10 @@
 const STEPS = [
-  "Rekordbox USB export",
-  "Essentia Discogs-EffNet embeddings (512-d)",
+  "Rekordbox USB export - BPM, genre and key (normalised to Camelot)",
+  "Essentia Discogs-EffNet - an audio similarity vector (512-d) per track",
+  "Essentia mood heads - six-axis radar (relaxed, party, aggressive, happy, sad, vocal), shown as percentiles within this library",
   "Mean-centering",
   "Camelot / BPM filter",
-  "Ranking in the browser",
+  "Ranking in the browser - previews load from Deezer only when you press play",
 ];
 
 export function HowItWorks() {
@@ -14,11 +15,11 @@ export function HowItWorks() {
       </h2>
       <ol className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {STEPS.map((step, index) => (
-          <li key={step} className="flex items-center gap-3 sm:max-w-xs">
+          <li key={step} className="flex min-w-0 items-center gap-3 sm:max-w-xs">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line text-xs text-gold tabular-nums">
               {index + 1}
             </span>
-            <span className="text-sm text-cream">{step}</span>
+            <span className="min-w-0 text-sm text-cream">{step}</span>
           </li>
         ))}
       </ol>

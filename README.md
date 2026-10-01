@@ -16,7 +16,7 @@ flowchart TD
   audio[Audio files, local only]
   pdb[export.pdb]
   analyze[analyze.py Essentia Discogs-EffNet]
-  heads[heads.py mood heads, second audio pass]
+  heads[heads.py six-axis radar, second audio pass]
   meta[build_meta.py BPM and Camelot]
   match[deezer_match.py Deezer track ids]
   embed[512-d embeddings]
