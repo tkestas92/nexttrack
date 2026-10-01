@@ -53,7 +53,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
       if (loadedId.current === id && phaseRef.current === "paused") {
         void audio.play().then(
           () => commit("playing", id),
-          () => commit("error", id, "Playback was blocked. Try again."),
+          () => commit("error", id, "Preview unavailable"),
         );
         return;
       }
@@ -69,13 +69,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           if (request !== requestId.current) return;
 
           if (!response.ok || typeof body.preview !== "string") {
-            const message =
-              response.status === 404
-                ? "No Deezer preview for this track."
-                : response.status === 429
-                  ? "Too many previews. Wait a moment."
-                  : "Preview failed. Try again.";
-            commit("error", id, message);
+            commit("error", id, "Preview unavailable");
             return;
           }
 
@@ -86,7 +80,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
           commit("playing", id);
         } catch {
           if (request !== requestId.current) return;
-          commit("error", id, "Preview failed. Try again.");
+          commit("error", id, "Preview unavailable");
         }
       })();
     },

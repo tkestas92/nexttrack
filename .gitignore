@@ -13,3 +13,4 @@ vectors.jsonl
 metadata.json
 deezer.json
 *.log
+.DS_Store

@@ -4,7 +4,7 @@ NextTrack helps a DJ choose the next track. Matching musical key and tempo still
 
 ## Problem
 
-Harmonic mixing is necessary and not sufficient. In a library of about 3,600 tracks, a typical track still has about 620 others that agree on Camelot key and BPM (including half-time and double-time). DJs then pick from memory: which of those 620 has the right timbre, drums, and mood. NextTrack does that last step with audio embeddings, without putting the music online.
+Harmonic mixing is necessary and not sufficient. In a library of 3,582 tracks, a typical track still has about 620 others that agree on Camelot key and BPM (including half-time and double-time). DJs then pick from memory: which of those 620 has the right timbre, drums, and mood. NextTrack does that last step with audio embeddings, without putting the music online.
 
 ## Approach
 
@@ -16,6 +16,7 @@ flowchart TD
   audio[Audio files, local only]
   pdb[export.pdb]
   analyze[analyze.py Essentia Discogs-EffNet]
+  heads[heads.py mood heads, second audio pass]
   meta[build_meta.py BPM and Camelot]
   match[deezer_match.py Deezer track ids]
   embed[512-d embeddings]
@@ -32,6 +33,8 @@ flowchart TD
   usb --> pdb
   audio --> analyze
   analyze --> embed
+  audio --> heads
+  heads --> export
   pdb --> meta
   meta --> match
   embed --> export
@@ -48,7 +51,13 @@ flowchart TD
 
 Each track becomes one 512-dimensional Discogs-EffNet embedding. The export mean-centers the matrix and L2-normalizes every row, so similarity is a dot product. The browser decodes the float16 matrix once, drops tracks that fail the Camelot intent or the BPM tolerance, and sorts what remains.
 
-The only server call is optional. If a track has a Deezer id, pressing play asks `/api/preview` for a short preview URL. The app does not host, proxy, or store audio.
+The only server call is optional. If a track has a Deezer id, pressing play asks `/api/preview` for a short preview URL. The app does not host, proxy, or store audio. Tracks without an id, and previews Deezer cannot serve, show that in the play-button slot.
+
+## Radar
+
+Each track can also carry six mood axes: relaxed, party, aggressive, happy, sad, and vocal. They come from Essentia classification heads on the Discogs-EffNet embeddings (`pipeline/heads.py`). `heads.py` needs a second pass over the audio. The site shows each axis as a percentile relative to this library, and labels the chart as a model estimate, not a probability.
+
+The selected track draws one radar. Compare on a suggestion overlays that track and the suggestion, then one line says why they sit together: which axes are within 12 points, and which axis differs most.
 
 ## Tech stack
 
@@ -58,7 +67,7 @@ The only server call is optional. If a track has a Deezer id, pressing play asks
 | Library metadata | Rekordbox `export.pdb` via `rekordbox-pdb`, plus Mutagen in the private Streamlit tool |
 | Preview ids | Deezer search API, matched offline |
 | Web app | Next.js 16, React 19, TypeScript, Tailwind CSS 4, App Router |
-| Tests | Vitest, for Camelot neighbors, BPM compatibility, and ranking |
+| Tests | Vitest, for Camelot neighbors, BPM compatibility, ranking, radar comparison, and preview state |
 | Hosting | Railway. Set the root directory to `web`. Build `npm run build`, start `npm start`. No Docker image. |
 
 ## Run the web app
@@ -101,14 +110,15 @@ pip install -r requirements.txt
    python analyze.py /path/to/rekordbox-usb
    ```
 
-3. `build_meta.py` reads `export.pdb` and writes `metadata.json` (artist, title, genre, BPM, Camelot). The database path is the `PDB` constant at the top of that script.
-4. Match Deezer track ids. This calls the Deezer search API and writes `deezer.json`:
+3. `heads.py` makes a second pass over the same audio. It runs Essentia classification heads on the Discogs-EffNet embeddings and produces the six radar axes (relaxed, party, aggressive, happy, sad, vocal).
+4. `build_meta.py` reads `export.pdb` and writes `metadata.json` (artist, title, genre, BPM, Camelot). The database path is the `PDB` constant at the top of that script.
+5. Match Deezer track ids. This calls the Deezer search API and writes `deezer.json`:
 
    ```bash
    python deezer_match.py
    ```
 
-5. Build the files the website loads:
+6. Build the files the website loads:
 
    ```bash
    python export.py
@@ -123,13 +133,13 @@ streamlit run app.py
 
 ## Demo
 
-Live demo: _add the Railway URL here._
+Live demo: https://demo-nexttrack.kantrybes.lt
 
-Screenshot: _add `docs/screenshot.png` after the first deploy._
+![NextTrack](docs/screenshot.png)
 
 ## Limitations and next steps
 
-- Deezer coverage is about 74%. Tracks without an id have no preview button.
+- Deezer previews cover about 78% of tracks (2,806 of 3,582). Tracks without an id show “No preview available”.
 - Deezer previews are often the start of the track, not a mixable section.
 - The embedding measures timbre and style. It does not know the room, the crowd, or where a track sits in a set.
 - Next step: score the ranker against 305 real DJ sets from Rekordbox history, and see how often a track that was actually played next lands in the top 10.

@@ -157,16 +157,9 @@ export function Finder() {
                     <TrackFacts track={selected} />
                   </div>
                   <TrackRadar radar={selected.radar} />
-                  {deezerId(selected) != null ? (
-                    <div className="mt-5">
-                      <PreviewControls
-                        id={deezerId(selected) as number}
-                        label={trackLabel(selected)}
-                      />
-                    </div>
-                  ) : (
-                    <p className="mt-5 text-sm text-muted">No Deezer preview for this track.</p>
-                  )}
+                  <div className="mt-5">
+                    <PreviewControls id={deezerId(selected)} label={trackLabel(selected)} />
+                  </div>
                 </article>
                 <CamelotWheel camelot={selected.camelot} mode={mode} harmonic={harmonic} />
               </div>
@@ -206,11 +199,9 @@ export function Finder() {
                               <SimilarityBar score={hit.score} />
                             </div>
                             <RadarCompare query={selected.radar} suggestion={track.radar} />
-                            {preview != null ? (
-                              <div className="mt-4">
-                                <PreviewControls id={preview} label={label} />
-                              </div>
-                            ) : null}
+                            <div className="mt-4">
+                              <PreviewControls id={preview} label={label} />
+                            </div>
                           </article>
                         </li>
                       );

@@ -1,5 +1,6 @@
 "use client";
 
+import { PREVIEW_MISSING, previewSlot } from "@/lib/preview-state";
 import { usePreview } from "./preview-provider";
 
 function PlayIcon() {
@@ -18,18 +19,38 @@ function PauseIcon() {
   );
 }
 
-export function PreviewControls({ id, label }: { id: number; label: string }) {
-  const { activeId, phase, error, toggle } = usePreview();
-  const active = activeId === id;
-  const playing = active && phase === "playing";
-  const loading = active && phase === "loading";
-  const message = active && phase === "error" ? error : null;
+function PreviewNote({ text }: { text: string }) {
+  return (
+    <p className="flex h-11 items-center text-sm text-muted" role="status">
+      {text}
+    </p>
+  );
+}
+
+export function PreviewControls({ id, label }: { id: number | null; label: string }) {
+  const { activeId, phase, toggle } = usePreview();
+  const slot = previewSlot({
+    previewId: id,
+    isActive: id != null && activeId === id,
+    phase,
+  });
+
+  if (id == null || slot.state === "missing" || slot.state === "unavailable") {
+    const text =
+      slot.state === "missing" || slot.state === "unavailable" ? slot.text : PREVIEW_MISSING;
+    return <PreviewNote text={text} />;
+  }
+
+  const playing = slot.state === "playing";
+  const loading = slot.state === "loading";
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="flex h-11 flex-wrap items-center gap-x-3 gap-y-1">
       <button
         type="button"
-        onClick={() => toggle(id)}
+        onClick={() => {
+          if (id != null) toggle(id);
+        }}
         disabled={loading}
         aria-pressed={playing}
         aria-busy={loading}
@@ -54,11 +75,6 @@ export function PreviewControls({ id, label }: { id: number; label: string }) {
       >
         Preview via Deezer
       </a>
-      {message ? (
-        <p role="alert" className="basis-full text-sm text-boost">
-          {message}
-        </p>
-      ) : null}
     </div>
   );
 }
